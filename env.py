@@ -12,7 +12,7 @@ class CarRacingWrapper(CarRacing):
   def __init__(self, full_episode=False):
     super(CarRacingWrapper, self).__init__()
     self.full_episode = full_episode
-    self.observation_space = Box(low=np.NINF, high=np.Inf, shape=(64, 64, 3)) # , dtype=np.uint8
+    self.observation_space = Box(low=0, high=255, shape=(64, 64, 3)) # , dtype=np.uint8
 
   def _process_frame(self, frame):
     obs = frame[0:84, :, :]
@@ -88,7 +88,8 @@ def make_env(args, dream_env=False, seed=-1, render_mode=False, full_episode=Fal
         env = CarRacingMDNRNN(args=args, full_episode=full_episode, with_obs=with_obs, load_model=load_model)
     else:
         print('makeing real CarRacing environment')
-        env = CarRacingWrapper(full_episode=full_episode)
+        #env = gym.make('CarRacing-v0')
+        env = CarRacingWrapper(full_episode=False)
     if (seed >= 0):
         env.seed(seed)
     return env

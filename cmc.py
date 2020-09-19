@@ -2,6 +2,7 @@ from collections import deque
 import os
 import subprocess
 import sys
+import gym
 from mpi4py import MPI
 from parameters import *
 import tensorflow as tf
@@ -110,6 +111,7 @@ class CMC (object):
             print(observation)
             #observation = self.env.retrieve(env.getShoulderZ())
             for t in range(steps_per_episode):
+                self.env.render()
                 print("Deep ICAC sim: {}/{} episode: {}/{}. Step: {}/{}".format(sim, nb_simulation, i_episode+1, nb_episodes, t+1, steps_per_episode))
                 encoded_obs = self.encoder.predict(np.array([observation]), batch_size = 1)[0]
                 
