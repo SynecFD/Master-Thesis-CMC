@@ -12,6 +12,8 @@ import random, numpy as np, env
 from utils import PARSER
 
 
+tf.config.experimental.list_physical_devices('GPU')
+
 ### MPI related code
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -59,8 +61,8 @@ class CMC (object):
     def replay(self):
         batch_size = min(BATCH_SIZE,len(self.memory))
         minibatch = random.sample(self.memory, batch_size)
-        X_c1, X_c2, X_a, X_w = np.zeros((batch_size,64,32,3)), np.zeros((batch_size,1)), [], np.zeros((batch_size,33))
-        Y_c1, Y_c2, Y_a, Y_w1, Y_w2 = np.zeros((batch_size,64,32,3)), np.zeros((batch_size,)), [], np.zeros((batch_size,32)), np.zeros((batch_size,1))
+        X_c1, X_c2, X_a, X_w = np.zeros((batch_size,64,64,3)), np.zeros((batch_size,3)), [], np.zeros((batch_size,35))
+        Y_c1, Y_c2, Y_a, Y_w1, Y_w2 = np.zeros((batch_size,64,64,3)), np.zeros((batch_size,)), [], np.zeros((batch_size,32)), np.zeros((batch_size,1))
         
         for i in range(batch_size):
             state, action, ext_r, total_r, next_state, done = minibatch[i] # action is scalar
@@ -71,12 +73,13 @@ class CMC (object):
                 target1 += gamma * self.critic_t.predict([np.array([next_state]), pol_next_t])[0]
             X_c1[i], X_c2[i], Y_c1[i], Y_c2[i] = state, action, target0, target1
             encoded_next_state = self.encoder.predict(np.array([next_state]),batch_size=1)[0]
-            X_w[i], Y_w1[i], Y_w2[i]= np.concatenate([encoded_state,np.array([action])]), encoded_next_state, ext_r
+            X_w[i], Y_w1[i], Y_w2[i]= np.concatenate([encoded_state,action]), encoded_next_state, ext_r
             td_err = target1 - self.critic.predict([np.array([state]), np.array([X_c2[i]])], batch_size = 1)[0]
             if td_err>0.:
                 X_a.append(encoded_state); Y_a.append(action)
         
         # update critic and actor (CACLA update)       
+        print(Y_c1.shape)
         self.autoencoder_critic.fit([X_c1, X_c2], [Y_c1, Y_c2], batch_size=batch_size, epochs=5, verbose=0)
         if len(X_a)>0: self.actor.fit(x=np.asarray(X_a), y=np.asarray(Y_a), batch_size=len(X_a), epochs=15, verbose=0)
         
@@ -99,7 +102,7 @@ class CMC (object):
         self.actor_t.set_weights(new_actor_target_weights)
 
     
-    def learn (self, nb_episodes = 10000, steps_per_episode = 50, sim = 1, nb_simulation = 1):
+    def learn (self, nb_episodes = 1000, steps_per_episode = 250, sim = 1, nb_simulation = 1):
         reliable_planner = False
         steps = np.zeros((nb_episodes,))
         rewards = np.zeros((nb_episodes,))        
@@ -108,7 +111,6 @@ class CMC (object):
             total_ext_reward_per_episode = 0.
             #goal = self.goals[i_episode%50]
             observation = self.env.reset()
-            print(observation)
             #observation = self.env.retrieve(env.getShoulderZ())
             for t in range(steps_per_episode):
                 self.env.render()
@@ -117,6 +119,7 @@ class CMC (object):
                 
                 if reliable_planner:
                     initial_plan = compute_initial_plan(encoded_obs, self.actor, self.world)
+                    print("takes long")
                     action = mpc(self.world, self.rolledout_world, encoded_obs, initial_plan) # outputs the optimal plan's 1st action
                 else:
                     action = self.actor.predict(np.array([encoded_obs]), batch_size = 1)[0]
@@ -132,7 +135,6 @@ class CMC (object):
                 ready_act = clipped_act
              
                 #ready_act = np.multiply(np.array([clipped_act]),[20])
-                print(ready_act)
                 obs_new, r_ext, done, x = self.env.step(ready_act)
                 encoded_next_obs = self.encoder.predict(np.array([obs_new]), batch_size = 1)[0]
                 lp = self.lp(self.world, np.concatenate([encoded_obs, ready_act]), encoded_next_obs, r_ext)
@@ -154,7 +156,7 @@ class CMC (object):
             
             print("--saving networks--")
             try: 
-                self.actor.save_weights("actor_W"); self.autoencoder_critic.save_weights("autoencoder_W"); self.world.save_weights("world");
+                self.actor.save_weights("actor_W"); self.autoencoder_critic.save_weights("autoencoder_W"); self.world.save_weights("world")
                 save_model(self.actor,'actor'); save_model(self.autoencoder_critic, 'autoencoder_critic'); save_model(self.world, 'world')
             except IOError as e:
                 print("I/O error({0}): {1}".format(e.errno, e.strerror))   
