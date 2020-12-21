@@ -1,0 +1,16 @@
+Problems:
+    - AI makes only very small progress and after 20 hours of training was not able to solve it once
+    - the model predictive control does not learn to stay on track
+    - Training one episode takes a long time. ~200 Episodes = 12hours of training
+    - At least ~700 Steps needed to solve the environment, people are training with 1500 max steps per episode
+
+
+IDEAS:
+    - use MDRNN as a way to select the next actions
+    - adjust the model predictive control to increased training efficiency
+    - adjust the lp algorithm to get more randomness in the episodes
+    - dedicate multiple complete episodes towards learning the environment
+
+PLAN:
+    - Train mpc first with random actions
+    - long into simplifying the track for carracing
