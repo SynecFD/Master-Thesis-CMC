@@ -30,15 +30,23 @@ class CMC (object):
             self.load_complete_models()
             #self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
             #self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
+        elif(config_args.load_world_weights):
+            self.world = load_model('world')
+            self.critic = load_model('critic')
+            self.encoder = load_model('encoder') 
+            self.autoencoder = load_model('autoencoder')
+            self.autoencoder_critic = load_model('autoencoder_critic')
+            self.actor = actor()
         else:
             self.actor = actor()
             self.autoencoder_critic, self.autoencoder, self.encoder, self.critic = CAE_critic()
             self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
             self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
-            #self.world = world()
-            self.world = load_model('world')
-            self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
-            self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
+            self.world = world()
+            #self.world = load_model('world')
+        self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
+        self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
+        
         self.memory = deque(maxlen=int((1e+5)/8))
         
         self.graph = get_graph()
@@ -72,19 +80,19 @@ class CMC (object):
         #self.autoencoder_critic, self.encoder, self.critic = CAE_critic()
         self.autoencoder_critic = load_model('autoencoder_critic')
         self.world = load_model('world') 
-        self.actor = load_model('actor') 
         self.critic = load_model('critic')
         self.encoder = load_model('encoder') 
         self.autoencoder = load_model('autoencoder')
+        try:
+            self.actor = load_model('actor')
+        except IOError:
+            self.actor = actor()
 
         #self.autoencoder_critic._make_predict_function()
         self.world._make_predict_function()
-        self.actor._make_predict_function()
+        #self.actor._make_predict_function()
         self.encoder._make_predict_function()
         #self.critic._make_predict_function()
-
-        self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
-        self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
 
     def lp (self, model, sensorimotor_stimulus, next_s, next_r): # computes the learning progress
         prediction = model.predict(np.array([sensorimotor_stimulus]), batch_size = 1)
@@ -130,13 +138,13 @@ class CMC (object):
                 X_a.append(encoded_state); Y_a.append(action)
         
         # update critic and actor (CACLA update)       
-        tensorboard_callback_autocritic = tf.keras.callbacks.TensorBoard(log_dir="summaries/autoenc_critic", histogram_freq=1)
-        self.autoencoder_critic.fit([X_c1, X_c2], [Y_c1, Y_c2], batch_size=batch_size, epochs=5, verbose=0, callbacks=[tensorboard_callback_autocritic])
+        #tensorboard_callback_autocritic = tf.keras.callbacks.TensorBoard(log_dir="summaries/autoenc_critic", histogram_freq=1)
+        self.autoencoder_critic.fit([X_c1, X_c2], [Y_c1, Y_c2], batch_size=batch_size, epochs=5, verbose=0) #callbacks=[tensorboard_callback_autocritic]
         if len(X_a)>0: self.actor.fit(x=np.asarray(X_a), y=np.asarray(Y_a), batch_size=len(X_a), epochs=15, verbose=0)
         
         # update the world model
-        tensorboard_callback_world = tf.keras.callbacks.TensorBoard(log_dir="summaries/world", histogram_freq=1)
-        self.world.fit(X_w, [Y_w1, Y_w2], batch_size=batch_size, epochs=10, verbose=0, callbacks=[tensorboard_callback_world])
+        #tensorboard_callback_world = tf.keras.callbacks.TensorBoard(log_dir="summaries/world", histogram_freq=1)
+        self.world.fit(X_w, [Y_w1, Y_w2], batch_size=batch_size, epochs=10, verbose=0)
         
         # update target networks
         critic_weights, critic_t_weights = self.critic.get_weights(), self.critic_t.get_weights()
@@ -174,12 +182,12 @@ class CMC (object):
                 X_a.append(encoded_state); Y_a.append(action)
         
         # update critic and actor (CACLA update)       
-        tensorboard_callback_autocritic = tf.keras.callbacks.TensorBoard(log_dir="summaries/autoenc_critic", histogram_freq=1)
-        self.autoencoder_critic.fit([X_c1, X_c2], [Y_c1, Y_c2], batch_size=batch_size, epochs=5, verbose=0, callbacks=[tensorboard_callback_autocritic])
+        #tensorboard_callback_autocritic = tf.keras.callbacks.TensorBoard(log_dir="summaries/autoenc_critic", histogram_freq=1)
+        self.autoencoder_critic.fit([X_c1, X_c2], [Y_c1, Y_c2], batch_size=batch_size, epochs=5, verbose=0)
 
         # update the world model
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="summaries/world", histogram_freq=1)
-        self.world.fit(X_w, [Y_w1, Y_w2], batch_size=batch_size, epochs=10, verbose=0, callbacks=[tensorboard_callback])
+        #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="summaries/world", histogram_freq=1)
+        self.world.fit(X_w, [Y_w1, Y_w2], batch_size=batch_size, epochs=10, verbose=0)
 
         critic_weights, critic_t_weights = self.critic.get_weights(), self.critic_t.get_weights()
         new_critic_target_weights = []
@@ -188,7 +196,7 @@ class CMC (object):
             new_critic_target_weights.append((tnet_update_rate*critic_weights[i])+((1-tnet_update_rate)*critic_t_weights[i]))
         self.critic_t.set_weights(new_critic_target_weights)
     
-    def learn (self, nb_episodes = 1000, steps_per_episode = 400, sim = 1, nb_simulation = 1, only_mpc = False):
+    def learn (self, nb_episodes = 1000, steps_per_episode = 400, sim = 1, nb_simulation = 1, only_mpc = False, steer_pref=0):
         reliable_planner = False
         steps = np.zeros((nb_episodes,))
         rewards = np.zeros((nb_episodes,))        
@@ -214,7 +222,7 @@ class CMC (object):
                 action[0] = np.random.normal(action[0], scale=0.35) # exploration noise
                 action[1] = np.random.normal(action[1], scale=0.35)
                 action[2] = np.random.normal(action[2], scale=0.2)
-                clipped_act = self.action_clip(action, 0)
+                clipped_act = self.action_clip(action, steer_pref)
 
                 ready_act = clipped_act
                 obs_new, r_ext, done, x = self.env.step(ready_act)
@@ -244,11 +252,13 @@ class CMC (object):
             print("--saving networks--")
             try: 
                 if not only_mpc:
-                    self.actor.save_weights("actor_W"); self.autoencoder_critic.save_weights("autoencoder_W")
-                    self.critic.save_weights("critic_W")
-                    
-                    save_model(self.actor,'actor'); save_model(self.autoencoder_critic, 'autoencoder_critic')
-                    save_model(self.critic, 'critic')
+                    self.actor.save_weights("actor_W")
+                    save_model(self.actor,'actor')
+
+                self.autoencoder_critic.save_weights("autoencoder_W")
+                self.critic.save_weights("critic_W")
+                save_model(self.autoencoder_critic, 'autoencoder_critic')
+                save_model(self.critic, 'critic')
                 save_model(self.autoencoder, 'autoencoder')
                 self.autoencoder.save_weights('autoencoder_W')
                 save_model(self.encoder, 'encoder')
@@ -259,11 +269,15 @@ class CMC (object):
             except IOError as e:
                 print("I/O error({0}): {1}".format(e.errno, e.strerror))   
 
-            rewards [i_episode] = total_ext_reward_per_episode
-            
             print("--saving results--")
-            np.savetxt('summaries/rewards',rewards)
-            np.savetxt('summaries/steps',steps)
+            rewards [i_episode] = total_ext_reward_per_episode
+
+            if only_mpc:
+                np.savetxt('summaries/mpc_rewards',rewards)
+                np.savetxt('summaries/mpc_steps',steps)
+            else:
+                np.savetxt('summaries/rewards',rewards)
+                np.savetxt('summaries/steps',steps)
             self.restart()
             #create_session()
         
@@ -310,22 +324,21 @@ def main(args):
 
     #initialize_settings(args.controller_sigma_init, args.controller_sigma_decay)
     
-    only_mpc = False
+    mpc_first = True
 
     sprint("process", rank, "out of total ", comm.Get_size(), "started")
-    if(only_mpc):
+    if(mpc_first):
         config_args.load_weights = False
+        config_args.load_world_weights = False
         agent = CMC(config_args)
-        rewards, steps = agent.learn(only_mpc=True)
-    elif (rank == 0):
-        config_args.load_weights = False
+        rewards, steps = agent.learn(nb_episodes=200, steps_per_episode=300, only_mpc=True, steer_pref=-0.15)
+        config_args.load_world_weights = True
         agent = CMC(config_args)
-        rewards, steps = agent.learn()
+        rewards, steps = agent.learn(nb_episodes=800)
     else:
         config_args.load_weights = True
         agent = CMC(config_args)
         rewards, steps = agent.learn()
-        #slave()
 
 if __name__ == "__main__":
     print('---------Learning started-----------')
