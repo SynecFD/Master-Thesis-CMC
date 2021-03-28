@@ -88,10 +88,13 @@ class CMC (object):
         except IOError:
             self.actor = actor()
 
+        self.critic_t = clone_model(self.critic); self.critic_t.set_weights(self.critic.get_weights())
+        self.actor_t = clone_model(self.actor); self.actor_t.set_weights(self.actor.get_weights())
+
         #self.autoencoder_critic._make_predict_function()
-        self.world._make_predict_function()
-        #self.actor._make_predict_function()
-        self.encoder._make_predict_function()
+        #self.world._make_predict_function()
+        self.actor._make_predict_function()
+        #self.encoder._make_predict_function()
         #self.critic._make_predict_function()
 
     def lp (self, model, sensorimotor_stimulus, next_s, next_r): # computes the learning progress
@@ -196,7 +199,7 @@ class CMC (object):
             new_critic_target_weights.append((tnet_update_rate*critic_weights[i])+((1-tnet_update_rate)*critic_t_weights[i]))
         self.critic_t.set_weights(new_critic_target_weights)
     
-    def learn (self, nb_episodes = 1000, steps_per_episode = 400, sim = 1, nb_simulation = 1, only_mpc = False, steer_pref=0):
+    def learn (self, nb_episodes = 1000, steps_per_episode = 50, sim = 1, nb_simulation = 1, only_mpc = False, steer_pref=0):
         reliable_planner = False
         steps = np.zeros((nb_episodes,))
         rewards = np.zeros((nb_episodes,))        
