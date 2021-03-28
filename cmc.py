@@ -329,9 +329,9 @@ def main(args):
     sprint("process", rank, "out of total ", comm.Get_size(), "started")
     if(mpc_first):
         config_args.load_weights = False
-        config_args.load_world_weights = False
-        agent = CMC(config_args)
-        rewards, steps = agent.learn(nb_episodes=200, steps_per_episode=300, only_mpc=True, steer_pref=-0.15)
+        #config_args.load_world_weights = False
+        #agent = CMC(config_args)
+        #rewards, steps = agent.learn(nb_episodes=200, steps_per_episode=300, only_mpc=True, steer_pref=-0.15)
         config_args.load_world_weights = True
         agent = CMC(config_args)
         rewards, steps = agent.learn(nb_episodes=800)
