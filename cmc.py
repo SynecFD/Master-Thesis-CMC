@@ -199,7 +199,7 @@ class CMC (object):
             new_critic_target_weights.append((tnet_update_rate*critic_weights[i])+((1-tnet_update_rate)*critic_t_weights[i]))
         self.critic_t.set_weights(new_critic_target_weights)
     
-    def learn (self, nb_episodes = 1000, steps_per_episode = 50, sim = 1, nb_simulation = 1, only_mpc = False, steer_pref=0):
+    def learn (self, nb_episodes = 1000, steps_per_episode = 350, sim = 1, nb_simulation = 1, only_mpc = False, steer_pref=0):
         reliable_planner = False
         steps = np.zeros((nb_episodes,))
         rewards = np.zeros((nb_episodes,))        
