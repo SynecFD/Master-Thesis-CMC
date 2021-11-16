@@ -63,7 +63,7 @@ def CAE_critic() :  # Minimized Conv AutoEncoder-Critic Net
     x = UpSampling2D ((2,2))(x) 
     x = Conv2D(8, (10, 2), strides=1, activation='relu', name='dec_conv2')(x)
     x = UpSampling2D ((5,5))(x) 
-    decoded = Conv2D(3, (12, 12), strides=1, activation='sigmoid', name='dec_conv3')(x) 
+    decoded = Conv2D(3, (12, 12), strides=1, activation='relu', name='dec_conv3')(x) 
     
     h_val = Dense((20),activation='relu')(encoded_with_act) # the critic branch
     output_val = Dense((1))(h_val)
@@ -81,7 +81,7 @@ def autoencoder() :
     x = Conv2D(8, (8, 8), strides=4, activation='relu', name='conv1')(input_img) 
     x = Conv2D(16, (4, 4), strides=1,  activation='relu', name='conv2')(x) 
     x = Flatten()(x)
-    encoded = Dense((laten_code_dim), activation='sigmoid', name = 'dense1')(x)
+    encoded = Dense((laten_code_dim), activation='relu', name = 'dense1')(x)
      
     x = Dense((1536),activation='relu', name='dense2')(encoded)
     x = Reshape((12,8,16))(x)
@@ -89,7 +89,7 @@ def autoencoder() :
     x = UpSampling2D ((2,2))(x) 
     x = Conv2D(8, (10, 2), strides=1, activation='relu', name='dec_conv2')(x)
     x = UpSampling2D ((5,5))(x) 
-    decoded = Conv2D(3, (12, 12), strides=1, activation='sigmoid', name='dec_conv3')(x) 
+    decoded = Conv2D(3, (12, 12), strides=1, activation='relu', name='dec_conv3')(x) 
     
     encoder = Model(input_img, encoded)
     autoencoder = Model(input_img, decoded)
@@ -112,7 +112,7 @@ def actor():
 def world(): # world model net  
     input_ = Input(shape=(laten_code_dim+action_dim,))
     x = Dense((20),activation='tanh',name='hid')(input_)
-    output1 = Dense((laten_code_dim),activation='sigmoid',name='out1')(x) # predicted state
+    output1 = Dense((laten_code_dim),activation='relu',name='out1')(x) # predicted state
     output2 = Dense((1),activation='tanh',name='out2')(x) # predicted reward
     
     world = Model(input_, [output1, output2])

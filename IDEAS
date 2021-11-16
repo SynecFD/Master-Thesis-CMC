@@ -14,3 +14,27 @@ IDEAS:
 PLAN:
     - Train mpc first with random actions
     - long into simplifying the track for carracing
+
+
+Questions:
+    - MPC is not learning correctly, even after adjusting training to be more directed
+        - it did however prevent the car from driving of the map
+        - Encoded observation in an untrained state might not be usable -> seemed very random
+            - Suspection: Training with these kind of observations do not help the model
+            - Maybe try to train the encoder first without anything else?
+            - regardless of what the actual observation is at a given moment, the care will always steer left
+            - Even after training the values are very extreme
+                - maybe also an exploding or vanishing gradient problem
+
+    - Between training the mpc only and training everything at once after that. I only loaded the weights, not the complete model. 
+      Apparently this makes a difference because optimizer states are not included oterhwise
+        - However this did not seem to improve the result much
+    
+    - Is there a way I can access a server/computer to train on in the university? Does not have to be super powerful.
+
+    - General Master thesis guideline
+    - Good RL master thesis example?
+        - or maybe a template I could use
+    - General literature recommendations to cite and include
+
+
